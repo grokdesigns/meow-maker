@@ -18,5 +18,5 @@ jobs:
         with:
           TOKEN: ${{ secrets.MEOW_TOKEN }}                    #Token you saved as a secret. Do not change.
           REPOSITORY : 'meow-maker'                  #Repository the action is running on.
-          SOURCE_FOLDER : './templates'        #File where you put changing content.
+          SOURCE_FOLDER : 'templates'        #File where you put changing content.
           BRANCH: 'main'                                 #Branch containing your files.
