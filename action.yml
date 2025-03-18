@@ -1,0 +1,22 @@
+name: Meow Maker
+author: grokdesigns
+description: Action to run whiskers on uploaded Tera files and automatically output templates to repo.
+branding:
+  icon: copy
+  color: gray-dark
+on: 
+  push:
+    branches:
+      - main                                             #Branch that will trigger action on new push.
+  workflow_dispatch:
+jobs:
+  Meow-Maker:
+    runs-on: ubuntu-latest                               #Platform that GitHub will use to run container.
+    steps:
+      - name: Meow
+        uses: docker://grokdesigns/meow-maker:latest #Docker image containing script.
+        with:
+          TOKEN: ${{ secrets.MEOW_TOKEN }}                    #Token you saved as a secret. Do not change.
+          REPOSITORY : 'meow-maker'                  #Repository the action is running on.
+          SOURCE_FOLDER : './templates'        #File where you put changing content.
+          BRANCH: 'main'                                 #Branch containing your files.
