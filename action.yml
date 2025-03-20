@@ -2,7 +2,7 @@ name: "Meow Maker for Catppuccin"
 author: "grokdesigns"
 description: "Action to run whiskers on uploaded Tera files and automatically output templates to repo."
 branding:
-  icon: "cat"
+  icon: "copy"
   color: "gray-dark"
 
 inputs:
@@ -34,3 +34,6 @@ inputs:
 runs:
   using: "docker"
   image: "grokdesigns/meow-maker:latest"
+  args:
+    - -v
+    - ${{ github.workspace }}:/workspace  # Mount GitHub workspace to /workspace in the container
