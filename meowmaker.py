@@ -17,40 +17,60 @@ def print_directory_structure(start_path, level=0, max_depth=1):
                 print_directory_structure(entry.path, level + 1, max_depth)
 
 def log_files_in_directory(directory):
-    # List all items in the given directory
+    """Logs all files in the specified directory."""
     for item in os.listdir(directory):
         item_path = os.path.join(directory, item)
-        
-        # Check if the item is a directory
         if os.path.isdir(item_path):
-            # If the item is a directory, call the function recursively
             log_files_in_directory(item_path)
         else:
-            # Otherwise, log the file
             logger.info(f"  - {item}, Size: {os.path.getsize(item_path)} bytes")
+
+def git_commit_push(output_folder, commit_message):
+    """Stages and pushes changes to the repository."""
+    # Change to the working directory for git
+    os.chdir("/github/workspace")
+    # Stage output folder
+    subprocess.run(["git", "add", output_folder], check=True)
+
+    # Commit changes
+    try:
+        subprocess.run(["git", "commit", "-m", commit_message], check=True)
+    except subprocess.CalledProcessError as e:
+        logger.info("No changes to commit.")
+        return
+
+    # Push changes back to the repository
+    # Use GITHUB_TOKEN for authentication
+    github_token = os.environ.get("GITHUB_TOKEN")
+    repo = os.environ.get("GITHUB_REPOSITORY")
+    subprocess.run(["git", "push", f"https://x-access-token:{github_token}@github.com/{repo}.git", "HEAD:main"], check=True)
 
 def main():
     """Execute the Tera Processing Workflow."""
     try:
-        # Change the working directory to the output folder
-        os.chdir("/workspace")
+        # Change working directory to /workspace
+        os.chdir("/github/workspace")
 
-        # Get the root directory to reference the folder locations correctly
-        root_dir = os.getcwd()  # This should be '/workspace' inside the container
+        # Access inputs from environment variables
+        input_folder = os.environ.get('INPUT_INPUT_FOLDER', 'templates')  # Mapped from action.yml
+        output_folder = os.environ.get('INPUT_OUTPUT_FOLDER', 'output')  # Mapped from action.yml
+        git_username = os.environ.get('INPUT_GIT_USERNAME', 'github-actions[bot]')  # Mapped from action.yml
+        git_email = os.environ.get('INPUT_GIT_EMAIL', 'github-actions[bot]@users.noreply.github.com')  # Mapped from action.yml
+        commit_message = os.environ.get('INPUT_COMMIT_MESSAGE', 'Generated files')  # Mapped from action.yml
+        skip_ci = os.environ.get('INPUT_SKIP_CI', 'yes')  # Mapped from action.yml
 
-        # Set the input and output folders; ensure they have sensible defaults
-        input_folder = os.path.join(root_dir, os.environ.get('SRCFOLDER', 'templates'))
-        output_folder = os.path.join(root_dir, os.environ.get('DSTFOLDER', 'output'))
-
-        # Log the resolved paths for verification
+        # Log the resolved input/output paths
         logger.info(f"SRCFOLDER (Input): {input_folder}")
         logger.info(f"DSTFOLDER (Output): {output_folder}")
+        logger.info(f"Git Username: {git_username}")
+        logger.info(f"Git Email: {git_email}")
+        logger.info(f"Commit Message: {commit_message}")
+        logger.info(f"Skip CI: {skip_ci}")
 
-        # Check if the input_folder exists
+        # Check if the input folder exists
         if not os.path.exists(input_folder):
             raise FileNotFoundError(f"Error: Input directory '{input_folder}' does not exist.")
 
-        # Log the contents of the input folder
         logger.info("Logging contents of the input folder:")
         for filename in os.listdir(input_folder):
             logger.info(f"  - {filename}")
@@ -58,30 +78,27 @@ def main():
         # Get the list of Tera files in the input folder
         tera_files = [f for f in os.listdir(input_folder) if f.endswith('.tera')]
 
-        # Change the working directory to the output folder
-        os.chdir(output_folder)
-
         # Process each Tera file
         for tera_file in tera_files:
-            working_file_path = os.path.join(input_folder, tera_file)  # Full path to the Tera file
+            working_file_path = os.path.join(input_folder, tera_file)
+            result = subprocess.run(["/app/whiskers", working_file_path], capture_output=True, text=True)
 
-            # Run whiskers with the full path to the Tera file
-            result = subprocess.run(["/app/whiskers", working_file_path],
-                                    capture_output=True,
-                                    text=True)
-
-            # Log stdout and stderr for debugging
             logger.info(f"Processing '{working_file_path}': {result.stdout}")
             if result.returncode != 0:
                 logger.error(f"Whiskers execution failed for '{working_file_path}': {result.stderr}")
                 continue
 
             logger.info(f"Whiskers executed successfully for '{working_file_path}'")
-            # Add this right after processing files in your meowmaker.py
 
-        logger.info("Generated files in outputs directory:")
+        logger.info("Generated files in output directory:")
         log_files_in_directory(output_folder)
-                
+        
+        # Commit and push changes to GitHub based on SKIP_CI
+        if skip_ci.lower() == 'yes':
+            commit_message += " [no ci]"
+
+        git_commit_push(output_folder, commit_message)
+
     except Exception as e:
         logger.error(f"Unexpected Error: {str(e)}")
 
