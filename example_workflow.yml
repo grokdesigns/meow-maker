@@ -1,0 +1,22 @@
+name: Meow Maker Workflow
+on:
+  push:
+    branches:
+      - master
+jobs:
+  run-meowmaker:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Run Meow Maker
+        uses: 'docker://grokdesigns/meow-maker:latest'
+        with:
+          git_username: 'github-actions[bot]'
+          git_email: 'github-actions[bot]@users.noreply.github.com'
+          skip_ci: 'yes' #Be very careful changing this! It can cause infinite workflow loops.
+          commit_message: '🐱 - Generated via Meow Maker'
+          output_folder: 'output'
+          input_folder: 'templates'
+          branch_name: ${{ github.ref }}  #Don't change.
