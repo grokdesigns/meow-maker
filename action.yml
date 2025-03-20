@@ -1,4 +1,4 @@
-name: Meow Maker
+name: Meow-Maker
 author: grokdesigns
 description: Action to run whiskers on uploaded Tera files and automatically output templates to repo.
 branding:
