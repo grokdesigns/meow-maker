@@ -1,34 +1,51 @@
-name: Meow Maker for Catppuccin
-author: grokdesigns
-description: Action to run whiskers on uploaded Tera files and automatically output templates to repo.
+name: "Meow Maker for Catppuccin"
+author: "grokdesigns"
+description: "Action to run whiskers on uploaded Tera files and automatically output templates to repo."
 branding:
-  icon: copy
-  color: gray-dark
-on:
-  push:
-    branches:
-      - main
-jobs:
-  Meow-Maker-Actions:
-    runs-on: ubuntu-latest
-    
-### THIS SHOULD BE THE ONLY SECTION YOU NEED TO EDIT:    
-    env:
-      GIT_USERNAME: 'github-actions[bot]'  # Replace with your desired Git username or leave as bot.
-      GIT_EMAIL: 'github-actions[bot]@users.noreply.github.com'  # Replace with your email address or leave as bot.
-      SKIP_CI: 'yes'  # Set to 'no' if you want to run CI on commits. BEWARE THIS MAY CAUSE CASCADING WORKFLOWS!
-      COMMIT_MESSAGE: '🐱 - Generated via Meow Maker'
-      OUTPUT_FOLDER: 'output' #If you leave this blank, specify an output folder in your Tera configuration..
-      INPUT_FOLDER: 'templates'
-### END USER CONFIGURABLE SECTION ###
+  icon: "copy"
+  color: "gray-dark"
 
-    steps:
+inputs:
+  git_username:
+    description: "Git username for commits"
+    required: true
+    default: "github-actions[bot]"
+  git_email:
+    description: "Git email for commits"
+    required: true
+    default: "github-actions[bot]@users.noreply.github.com"
+  skip_ci:
+    description: "Whether to add [no ci] to commit messages"
+    required: true
+    default: "yes"
+  commit_message:
+    description: "Commit message for generated files"
+    required: true
+    default: "🐱 - Generated via Meow Maker"
+  output_folder:
+    description: "Folder to output generated files"
+    required: true
+    default: "output"
+  input_folder:
+    description: "Folder containing template files"
+    required: true
+    default: "templates"
+
+runs:
+  using: "ubuntu-latest"
+  env:  # Setting global environment variables for Git configuration
+    GIT_USERNAME: '${{ inputs.git_username }}'  # Replace with your desired Git username
+    GIT_EMAIL: '${{ inputs.git_email }}'  # Replace with your email address
+    SKIP_CI: '${{ inputs.skip_ci }}'  # Set this to 'no' if you want to run CI on commits
+    COMMIT_MESSAGE: '${{ inputs.commit_message }}'
+    OUTPUT_FOLDER: '${{ inputs.output_folder }}' #If you leave this blank, the root directory specified in your Tera file will be in the root of the repo.
+    INPUT_FOLDER: '${{ inputs.input_folder }}'
+  steps:
     - name: Checkout Repository
       uses: actions/checkout@v2
     - name: Remove Leading and Trailing Slashes
       id: trim_folders
       run: |
-        echo "Cleaning up folder names"
         INPUT_FOLDER="${{ env.INPUT_FOLDER }}"
         INPUT_FOLDER="${INPUT_FOLDER#/}"
         INPUT_FOLDER="${INPUT_FOLDER%/}"
@@ -37,10 +54,9 @@ jobs:
         OUTPUT_FOLDER="${OUTPUT_FOLDER#/}"
         OUTPUT_FOLDER="${OUTPUT_FOLDER%/}"
         echo "OUTPUT_FOLDER=${OUTPUT_FOLDER}" >> $GITHUB_ENV
-    - name: Check Input Folder Existence (Subsequent Steps Require True)
+    - name: Check Input Folder Existence
       id: check_input_folder
       run: |
-        echo "*** Ensuring input folder exists."
         if [ ! -d "${{ github.workspace }}/${{ env.INPUT_FOLDER }}" ]; then
           echo "Input folder '${{ env.INPUT_FOLDER }}' does not exist."
           echo "REQUIRED_INPUT_FOLDER_EXISTS=false" >> $GITHUB_ENV
@@ -48,30 +64,24 @@ jobs:
           echo "Input folder '${{ env.INPUT_FOLDER }}' exists."
           echo "REQUIRED_INPUT_FOLDER_EXISTS=true" >> $GITHUB_ENV
         fi
-    - name: Create Output Directory if Does Not Exist
+    - name: Set Up Output Directory
       if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
-      run: |
-        echo "*** Creating output folder"
-        mkdir -p ${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}
+      run: mkdir -p ${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}
     - name: Run Meow Maker Process
       if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
       run: |
-        echo "*** Launching Docker container to process files."
-        docker run --quiet --rm \
-          -v "${{ github.workspace }}:/workspace" \
-          -e SRCFOLDER="${{ env.INPUT_FOLDER }}" \
-          -e DSTFOLDER="${{ env.OUTPUT_FOLDER }}" \
-          grokdesigns/meow-maker:latest
-    - name: Set Up Git User & Email for Commits
+        docker run --rm \
+          -v "${{ github.workspace }}:/workspace" -e SRCFOLDER="${{ env.INPUT_FOLDER }}" -e DSTFOLDER="${{ env.OUTPUT_FOLDER }}" grokdesigns/meow-maker:latest
+    - name: Set Up Git Configuration
       if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
       run: |
-        echo "Configuring committer name and email."
+        echo "Setting up Git user information"
         git config --global user.name "${{ env.GIT_USERNAME }}"
         git config --global user.email "${{ env.GIT_EMAIL }}"
-    - name: Stage and Push Changes if They Exist
+        git config --list  # For debugging purposes
+    - name: Stage and Push Changes
       if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
       run: |
-        echo "Check for changes and commit if needed."
         cd ${{ github.workspace }}
         # Stage changes
         git add ./${{ env.OUTPUT_FOLDER }}/
