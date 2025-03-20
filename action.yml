@@ -34,6 +34,3 @@ inputs:
 runs:
   using: "docker"
   image: "grokdesigns/meow-maker:latest"
-  args:
-    - -v
-    - ${{ github.workspace }}:/workspace  # Mount GitHub workspace to /workspace in the container
