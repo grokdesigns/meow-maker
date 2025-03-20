@@ -37,4 +37,4 @@ inputs:
     
 runs:
   using: "docker"
-  image: "grokdesigns/meow-maker:latest"
+  image: ./Dockerfile
