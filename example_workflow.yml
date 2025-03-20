@@ -7,15 +7,15 @@ jobs:
   run-meowmaker:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v2
+      - name: Checkout Code
+        uses: actions/checkout@v4
 
-      - name: Run Meow Maker
-        uses: 'docker://grokdesigns/meow-maker:latest'
+      - name: Meow Maker for Catppuccin
+        uses: grokdesigns/meow-maker@v1.0.4
         with:
           git_username: 'github-actions[bot]'
           git_email: 'github-actions[bot]@users.noreply.github.com'
-          skip_ci: 'yes' #Be very careful changing this! It can cause infinite workflow loops.
+          skip_ci: 'yes'
           commit_message: '🐱 - Generated via Meow Maker'
           output_folder: 'output'
           input_folder: 'templates'
