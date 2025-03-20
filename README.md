@@ -19,7 +19,14 @@ Meow Maker is a GitHub action that you can add to any repo. After configuration,
 ## Usage
 1. Configure your repository settings to allow actions to read and write to the repo: https://github.com/username/reponame/settings/actions.
 
-2. 
+<kbd>![image](https://github.com/user-attachments/assets/b902b826-a2f4-4626-aac1-65d3c8fe44af)</kbd>
+
+
+2. Navigate to the Actions page for your repo: https://github.com/username/reponame/actions/new.
+
+3. Click *Configure* on 'Simple workflow'
+
+4. 
 
 ## 💝 Thanks to
 
