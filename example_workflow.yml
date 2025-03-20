@@ -2,7 +2,7 @@ name: Meow Maker Workflow
 on:
   push:
     branches:
-      - master
+      - main
 jobs:
   Meow-Maker-Action:
     runs-on: ubuntu-latest
