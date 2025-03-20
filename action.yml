@@ -30,7 +30,11 @@ inputs:
     description: "Folder containing template files"
     required: true
     default: "templates"
-
+  branch_name:
+    description: "Branch name to associate with the commit"
+    required: true
+    default: "main"
+    
 runs:
   using: "docker"
   image: "grokdesigns/meow-maker:latest"
