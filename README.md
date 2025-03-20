@@ -26,7 +26,7 @@ Meow Maker is a GitHub action that you can add to any repo. After configuration,
 
 3. Click *Configure* on 'Simple workflow'
 
-4. Using the [example_workflow.yml](example_workflow.yml) file as a template, create your action, gve it a representative name, and commit it to your repo.
+4. Using the [example_workflow.yml](example_workflow.yml) file as a template, create your action, give it a representative name, and commit it to your repo.
 
 5. For testing, you can delete your existing output folder and upon commit, Meow Maker should rebuild the folder and output your files.
 
