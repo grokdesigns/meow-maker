@@ -1,20 +1,91 @@
-name: Meow Maker
+ame: Meow Maker
 author: grokdesigns
 description: Action to run whiskers on uploaded Tera files and automatically output templates to repo.
 branding:
   icon: copy
   color: gray-dark
-on: 
+on:
   push:
-  workflow_dispatch:
+    branches:
+      - main
 jobs:
-  Meow-Maker:
-    runs-on: ubuntu-latest                               #Platform that GitHub will use to run container.
+  Meow-Maker-Actions:
+    runs-on: ubuntu-latest
+    
+### THIS SHOULD BE THE ONLY SECTION YOU NEED TO EDIT:    
+    env:
+      GIT_USERNAME: 'github-actions[bot]'  # Replace with your desired Git username or leave as bot.
+      GIT_EMAIL: 'github-actions[bot]@users.noreply.github.com'  # Replace with your email address or leave as bot.
+      SKIP_CI: 'yes'  # Set to 'no' if you want to run CI on commits. BEWARE THIS MAY CAUSE CASCADING WORKFLOWS!
+      COMMIT_MESSAGE: '🐱 - Generated via Meow Maker'
+      OUTPUT_FOLDER: 'output' #If you leave this blank, specify an output folder in your Tera configuration..
+      INPUT_FOLDER: 'templates'
+### END USER CONFIGURABLE SECTION ###
+
     steps:
-      - name: Meow
-        uses: docker://grokdesigns/meow-maker:latest #Docker image containing script.
-        with:
-          TOKEN: ${{ secrets.MEOW_TOKEN }}                    #Token you saved as a secret. Do not change.
-          REPOSITORY : 'meow-maker'                  #Repository the action is running on.
-          SOURCE_FOLDER : 'templates'        #File where you put changing content.
-          BRANCH: 'main'                                 #Branch containing your files.
+    - name: Checkout Repository
+      uses: actions/checkout@v2
+    - name: Remove Leading and Trailing Slashes
+      id: trim_folders
+      run: |
+        echo "Cleaning up folder names"
+        INPUT_FOLDER="${{ env.INPUT_FOLDER }}"
+        INPUT_FOLDER="${INPUT_FOLDER#/}"
+        INPUT_FOLDER="${INPUT_FOLDER%/}"
+        echo "INPUT_FOLDER=${INPUT_FOLDER}" >> $GITHUB_ENV
+        OUTPUT_FOLDER="${{ env.OUTPUT_FOLDER }}"
+        OUTPUT_FOLDER="${OUTPUT_FOLDER#/}"
+        OUTPUT_FOLDER="${OUTPUT_FOLDER%/}"
+        echo "OUTPUT_FOLDER=${OUTPUT_FOLDER}" >> $GITHUB_ENV
+    - name: Check Input Folder Existence (Subsequent Steps Require True)
+      id: check_input_folder
+      run: |
+        echo "*** Ensuring input folder exists."
+        if [ ! -d "${{ github.workspace }}/${{ env.INPUT_FOLDER }}" ]; then
+          echo "Input folder '${{ env.INPUT_FOLDER }}' does not exist."
+          echo "REQUIRED_INPUT_FOLDER_EXISTS=false" >> $GITHUB_ENV
+        else
+          echo "Input folder '${{ env.INPUT_FOLDER }}' exists."
+          echo "REQUIRED_INPUT_FOLDER_EXISTS=true" >> $GITHUB_ENV
+        fi
+    - name: Create Output Directory if Does Not Exist
+      if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
+      run: |
+        echo "*** Creating output folder"
+        mkdir -p ${{ github.workspace }}/${{ env.OUTPUT_FOLDER }}
+    - name: Run Meow Maker Process
+      if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
+      run: |
+        echo "*** Launching Docker container to process files."
+        docker run --quiet --rm \
+          -v "${{ github.workspace }}:/workspace" \
+          -e SRCFOLDER="${{ env.INPUT_FOLDER }}" \
+          -e DSTFOLDER="${{ env.OUTPUT_FOLDER }}" \
+          grokdesigns/meow-maker:latest
+    - name: Set Up Git User & Email for Commits
+      if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
+      run: |
+        echo "Configuring committer name and email."
+        git config --global user.name "${{ env.GIT_USERNAME }}"
+        git config --global user.email "${{ env.GIT_EMAIL }}"
+    - name: Stage and Push Changes if They Exist
+      if: env.REQUIRED_INPUT_FOLDER_EXISTS == 'true'
+      run: |
+        echo "Check for changes and commit if needed."
+        cd ${{ github.workspace }}
+        # Stage changes
+        git add ./${{ env.OUTPUT_FOLDER }}/
+        # Create commit message based on the SKIP_CI environment variable
+        COMMIT_MSG="${{ env.COMMIT_MESSAGE }}"
+        if [[ "${{ env.SKIP_CI }}" == "yes" ]]; then
+          COMMIT_MSG="${COMMIT_MSG} [no ci]"
+        fi
+        # Check for changes and commit
+        if git diff --cached --quiet; then
+          echo "No new files to commit."
+          exit 0
+        else
+          git commit -m "$COMMIT_MSG" || echo "No changes to commit"
+          # Push using GITHUB_TOKEN
+          git push https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }} HEAD:main
+        fi
