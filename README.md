@@ -16,7 +16,10 @@
 
 Meow Maker is a GitHub action that you can add to any repo. After configuration, Meow Maker will run on every push to the repository. Using the input and output folders you configure, all Tera files will be processed by Whiskers and commited back to your repo in the output folder. If you updated your templates and forgot to update your generated files, Meow Maker will take care of it!
 
-</blockquote>
+## Usage
+1. Configure your repository settings to allow actions to read and write to the repo: https://github.com/username/reponame/settings/actions.
+
+2. 
 
 ## 💝 Thanks to
 
